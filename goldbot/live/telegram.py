@@ -55,6 +55,23 @@ def send(text: str, png: Path | None = None) -> bool:
         return False
 
 
+def get_updates(offset: int | None = None) -> list[dict]:
+    """Входящие сообщения боту (команды). offset = id+1 последнего обработанного."""
+    token, _ = load_creds()
+    if not token:
+        return []
+    params = {"timeout": 0}
+    if offset is not None:
+        params["offset"] = offset
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{token}/getUpdates",
+                         params=params, timeout=20)
+        return r.json().get("result", [])
+    except Exception as e:  # noqa: BLE001
+        print(f"telegram getUpdates error: {e}")
+        return []
+
+
 def discover_chat_id(token: str) -> str | None:
     """Берёт chat_id из последнего сообщения боту (getUpdates).
     Перед вызовом напиши боту любое сообщение в Telegram."""
