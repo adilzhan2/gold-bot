@@ -21,14 +21,16 @@ from goldbot.features.htf import build_htf_context
 from goldbot.features.smc import atr
 
 # --- параметры тактики (крутить тут; окна — в МИНУТАХ) ---
-TOUCH_WINDOW_MIN = 240   # 4ч на появление sweep после касания зоны
-CHOCH_WINDOW_MIN = 90    # 1.5ч от sweep до CHoCH
+TOUCH_WINDOW_MIN = 360   # 6ч на появление sweep после касания зоны
+CHOCH_WINDOW_MIN = 150   # 2.5ч от sweep до CHoCH
 ATR_WINDOW_MIN = 70      # ATR на ~70 минутах (14 баров m5)
 LTF_SWING_K = 2          # свинги LTF в барах
-WICK_MIN_ATR = 0.1       # минимальная длина фитиля sweep (в ATR)
+WICK_MIN_ATR = 0.05      # минимальная длина фитиля sweep (в ATR)
 SPREAD = 0.35            # $ на XAUUSD
 SL_BUFFER_ATR = 0.15     # техотступ за фитилём (+ спред добавляется отдельно)
 MIN_RR = 1.2             # если до пула меньше — сетап пропускаем
+MAX_RR = 8.0             # дальше пул нереалистичен → режем цель до MAX_RR (без «лунных» RR 100)
+FALLBACK_RR = 2.5        # запасная фикс-цель, если пула ликвидности нет (0 = строгий режим)
 MIN_RISK_USD = 1.0       # микро-стопы < 1$ — шум, спред съедает всё
 MAX_TOUCHES = 2          # сколько касаний зоны отрабатываем
 MAX_ACTIVE_ZONES = 40
@@ -208,7 +210,13 @@ def generate_setups(df: pd.DataFrame) -> list[Setup]:
                 cands.append(pdl)
             tp = max(cands) if cands else np.nan
         if np.isnan(tp):
-            continue  # нет цели — нет сделки (по чек-листу целимся в ликвидность)
+            # пула нет — запасная фикс-цель FALLBACK_RR (чтобы сетап не терять)
+            if FALLBACK_RR:
+                tp = entry + d * FALLBACK_RR * risk
+            else:
+                continue  # строгий режим: целимся только в ликвидность
+        elif d * (tp - entry) / risk > MAX_RR:
+            tp = entry + d * MAX_RR * risk  # режем недостижимо далёкий пул
 
         z = state_["zone"]
         h = hours[i]

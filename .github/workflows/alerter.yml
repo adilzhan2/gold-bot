@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths: [".github/workflows/alerter.yml"]   # самопроверка при правках workflow
   schedule:
-    - cron: "*/5 * * * *"   # каждые 5 минут (UTC); GitHub может задержать на 5-15 мин
+    - cron: "*/15 * * * *"  # каждые 15 мин (глубокая история = 3 запроса Twelve Data; влезаем в 800/день)
   workflow_dispatch: {}      # ручной запуск (вкладка Actions → Run workflow)
 
 permissions:

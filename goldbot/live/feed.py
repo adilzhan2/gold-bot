@@ -56,7 +56,7 @@ def fetch(period: str = "5d", interval: str = "1m") -> pd.DataFrame:
     from goldbot.live import oanda, twelvedata
 
     if twelvedata.is_configured():
-        return twelvedata.fetch_td()  # спот, доступен из KZ
+        return twelvedata.fetch_td_deep()  # спот + глубокая история (больше зон/сетапов)
     if oanda.is_configured():
         return oanda.fetch_oanda()  # спот, надёжно
 
