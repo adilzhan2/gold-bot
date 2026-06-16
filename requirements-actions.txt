@@ -1,0 +1,7 @@
+# Лёгкие зависимости для GitHub Actions (только алертер, без torch/sklearn).
+# Модель скорится из imitation.json на чистом numpy.
+pandas
+numpy
+requests
+matplotlib
+mplfinance

@@ -1,0 +1,12 @@
+pandas
+numpy
+pyarrow
+torch
+scikit-learn
+matplotlib
+mplfinance
+fastapi
+uvicorn
+yfinance
+requests
+python-multipart

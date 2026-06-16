@@ -1,0 +1,45 @@
+name: gold-bot alerter
+
+# Serverless-алертер: GitHub сам запускает опрос каждые 5 минут.
+# Ноут не нужен. Токены — в Secrets (Settings → Secrets → Actions).
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # каждые 5 минут (UTC); GitHub может задержать на 5-15 мин
+  workflow_dispatch: {}      # ручной запуск (вкладка Actions → Run workflow)
+
+permissions:
+  contents: write            # чтобы коммитить state/sent.json (дедуп)
+
+concurrency:
+  group: alerter
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements-actions.txt
+
+      - name: Опрос рынка
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TWELVEDATA_KEY: ${{ secrets.TWELVEDATA_KEY }}
+        run: python -m scripts.poll_once
+
+      - name: Сохранить состояние (если были новые алерты)
+        run: |
+          if [[ -n "$(git status --porcelain state/sent.json)" ]]; then
+            git config user.name "gold-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add state/sent.json
+            git commit -m "state: обновил отправленные сетапы"
+            git push
+          fi
