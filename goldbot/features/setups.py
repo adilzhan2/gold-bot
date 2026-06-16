@@ -25,7 +25,8 @@ TOUCH_WINDOW_MIN = 360   # 6ч на появление sweep после каса
 CHOCH_WINDOW_MIN = 150   # 2.5ч от sweep до CHoCH
 ATR_WINDOW_MIN = 70      # ATR на ~70 минутах (14 баров m5)
 LTF_SWING_K = 2          # свинги LTF в барах
-WICK_MIN_ATR = 0.05      # минимальная длина фитиля sweep (в ATR)
+WICK_MIN_ATR = 0.0       # минимальная длина фитиля sweep (в ATR); 0 = любой фитиль
+REQUIRE_FVG = False      # False = не требовать имбаланс (больше сетапов для сбора данных)
 SPREAD = 0.35            # $ на XAUUSD
 SL_BUFFER_ATR = 0.15     # техотступ за фитилём (+ спред добавляется отдельно)
 MIN_RR = 1.2             # если до пула меньше — сетап пропускаем
@@ -190,8 +191,11 @@ def generate_setups(df: pd.DataFrame) -> list[Setup]:
         fvg = _ltf_fvg_in(hi, lo, state["sweep_bar"], i, d)
         state_, state = state, None  # сетап либо есть, либо нет — state сбрасываем
         if fvg is None:
-            continue
-        entry, fvg_size = fvg
+            if REQUIRE_FVG:
+                continue
+            entry, fvg_size = c[i], 0.0  # relaxed: вход по рынку, имбаланса нет
+        else:
+            entry, fvg_size = fvg
 
         sl = state_["sweep_px"] - d * (SL_BUFFER_ATR * a + SPREAD)
         risk = d * (entry - sl)
