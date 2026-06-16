@@ -3,6 +3,9 @@ name: gold-bot alerter
 # Serverless-алертер: GitHub сам запускает опрос каждые 5 минут.
 # Ноут не нужен. Токены — в Secrets (Settings → Secrets → Actions).
 on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/alerter.yml"]   # самопроверка при правках workflow
   schedule:
     - cron: "*/5 * * * *"   # каждые 5 минут (UTC); GitHub может задержать на 5-15 мин
   workflow_dispatch: {}      # ручной запуск (вкладка Actions → Run workflow)
