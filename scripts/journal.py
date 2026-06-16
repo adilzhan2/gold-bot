@@ -12,15 +12,26 @@
   python -m scripts.journal 2 loss -2.46 # минус с точной суммой
 """
 import csv
+import subprocess
 import sys
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-ALERTS = ROOT / "data" / "alerts" / "alerts.csv"
-JOURNAL = ROOT / "data" / "journal.csv"
+ALERTS = ROOT / "state" / "alerts.csv"   # пишется ботом на GitHub, тянем git pull
+JOURNAL = ROOT / "data" / "journal.csv"  # твои исходы, локально (в репо не идёт)
 TAKE_THR = 0.5  # p≥ → модель сказала «бери»
+
+
+def sync_alerts():
+    """Подтягивает свежие алерты с GitHub (бот пишет их в state/alerts.csv)."""
+    try:
+        subprocess.run(["git", "-C", str(ROOT), "pull", "--quiet", "--no-edit"],
+                       check=False, timeout=30,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001 — нет сети/гита: работаем на том, что есть
+        pass
 
 
 def load_journal() -> pd.DataFrame:
@@ -64,8 +75,9 @@ def show(alerts: pd.DataFrame, jrn: pd.DataFrame):
 
 
 def main():
+    sync_alerts()  # git pull — свежие алерты с сервера
     if not ALERTS.exists():
-        print("Пока нет алертов (data/alerts/alerts.csv).")
+        print("Пока нет алертов (state/alerts.csv). Бот пришлёт — появятся.")
         return
     alerts = pd.read_csv(ALERTS).reset_index(drop=True)
     jrn = load_journal()

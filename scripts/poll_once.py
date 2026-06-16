@@ -5,8 +5,8 @@
 Токены/ключи берутся из env (GitHub Secrets): TELEGRAM_BOT_TOKEN,
 TELEGRAM_CHAT_ID, TWELVEDATA_KEY.
 """
+import csv
 import json
-import sys
 from pathlib import Path
 
 from goldbot.charts import render_setup
@@ -18,9 +18,23 @@ from scripts.alerter import build_signal
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state" / "sent.json"
+ALERTS_CSV = ROOT / "state" / "alerts.csv"  # коммитится в репо → журнал читает локально
 CHART = Path("/tmp/gold_chart.png")  # эфемерно, в репо не коммитим
 FRESH_MIN = 30      # сетап свежий, если подтверждён в последние N мин (терпит дрейф cron)
 KEEP_STATE = 500    # сколько последних меток хранить (чтобы файл не пух)
+
+
+def log_alert(s, p):
+    """Дописывает полные данные алерта в state/alerts.csv (для журнала)."""
+    new = not ALERTS_CSV.exists()
+    ALERTS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(ALERTS_CSV, "a", newline="") as f:
+        w = csv.writer(f)
+        if new:
+            w.writerow(["time", "direction", "entry", "sl", "tp", "rr", "p_take"])
+        w.writerow([s.time, s.direction, round(s.entry, 2), round(s.sl, 2),
+                    round(s.tp, 2), round(s.features["rr_target"], 2),
+                    round(p, 3) if p is not None else ""])
 
 
 def load_sent() -> list[str]:
@@ -59,6 +73,7 @@ def main():
         if send(text, CHART):
             sent.append(key)
             sent_set.add(key)
+            log_alert(s, p)  # в state/alerts.csv → для журнала
             new += 1
             print(f"sent: {d} @ {s.entry:.2f} p={p}")
 
