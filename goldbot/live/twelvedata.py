@@ -36,17 +36,20 @@ def is_configured() -> bool:
     return load_key() is not None
 
 
-def fetch_td(interval: str = "1min", outputsize: int = MAX_OUTPUT) -> pd.DataFrame:
-    """Свечи в формате пайплайна (один запрос, до 5000 баров)."""
+def fetch_td(interval: str = "1min", outputsize: int = MAX_OUTPUT, symbol: str = SYMBOL) -> pd.DataFrame:
+    """Свечи в формате пайплайна (один запрос, до 5000 баров). symbol — любой инструмент."""
     key = load_key()
     if not key:
         raise RuntimeError("Нет ключа Twelve Data (data/twelvedata.json)")
-    return _one_request(key, interval, min(outputsize, MAX_OUTPUT))
+    df = _one_request(key, interval, min(outputsize, MAX_OUTPUT), symbol=symbol)
+    df.attrs["ticker"] = f"{symbol} (TwelveData)"
+    return df
 
 
-def _one_request(key: str, interval: str, outputsize: int, end_date: str | None = None) -> pd.DataFrame:
+def _one_request(key: str, interval: str, outputsize: int, end_date: str | None = None,
+                 symbol: str = SYMBOL) -> pd.DataFrame:
     params = {
-        "symbol": SYMBOL, "interval": interval, "outputsize": outputsize,
+        "symbol": symbol, "interval": interval, "outputsize": outputsize,
         "timezone": "UTC", "apikey": key,
     }
     if end_date:
